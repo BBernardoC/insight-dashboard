@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Box,
   Drawer,
@@ -14,6 +14,7 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
+  Button,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -22,6 +23,7 @@ import {
   FilterList,
   TableChart,
   Settings,
+  CloudUpload,
 } from "@mui/icons-material";
 
 const drawerWidth = 260;
@@ -30,10 +32,45 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+// NOTE: Parsing will be handled by a Python/pandas backend. Frontend uploads files to that endpoint.
+
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+    const handleFiles = async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      const form = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        form.append("files", files[i]);
+      }
+
+      try {
+        setImporting(true);
+        const resp = await fetch("http://localhost:5000/upload", {
+          method: "POST",
+          body: form,
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || "Upload failed");
+        }
+
+        const results = await resp.json();
+        console.log("Parsed results:", results);
+        alert(`Importado ${results.length} documento(s). Veja console para detalhes.`);
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao importar arquivos. Verifique o console.");
+      } finally {
+        setImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -90,19 +127,40 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           color: "hsl(var(--foreground))",
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: "none" } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Dashboard de Avaliação
-          </Typography>
+        <Toolbar className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { md: "none" } }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" noWrap component="div">
+              Dashboard de Avaliação
+            </Typography>
+          </div>
+
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf,.xls, .xlsx, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => handleFiles(e.target.files)}
+            />
+            <Button
+              color="inherit"
+              startIcon={<CloudUpload />}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+            >
+              {importing ? "Importando..." : "Importar"}
+            </Button>
+          </div>
         </Toolbar>
       </AppBar>
       <Box

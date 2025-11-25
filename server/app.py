@@ -1,34 +1,41 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 import pandas as pd
-from werkzeug.utils import secure_filename
+import json
+import os
 
-app = Flask(__name__)
-CORS(app)
+def excel_to_json(input_path, output_path=None):
+    """
+    Lê um arquivo Excel e converte seu conteúdo para JSON.
+    
+    Parâmetros:
+        input_path (str): Caminho do arquivo .xlsx
+        output_path (str): Caminho para salvar o JSON (opcional)
+    
+    Retorna:
+        str: JSON em formato string
+    """
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    files = request.files.getlist('files')
-    results = []
+    # Lê o Excel (padrão: primeira aba)
+    df = pd.read_excel(input_path)
 
-    for f in files:
-        filename = secure_filename(f.filename or "unknown")
-        try:
-            # Use pandas to read all sheets and return a small summary (rows/cols + head)
-            xls = pd.ExcelFile(f)
-            sheets = {}
-            for sheet_name in xls.sheet_names:
-                df = xls.parse(sheet_name)
-                sheets[sheet_name] = {
-                    "rows": int(df.shape[0]),
-                    "columns": int(df.shape[1]),
-                    "head": df.head(5).fillna("").to_dict(orient="records"),
-                }
-            results.append({"filename": filename, "sheets": sheets})
-        except Exception as e:
-            results.append({"filename": filename, "error": str(e)})
+    # Converte para JSON (lista de registros)
+    json_output = df.to_json(orient="records", force_ascii=False)
 
-    return jsonify(results)
+    # Se o usuário quiser salvar em arquivo
+    if output_path:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(json_output)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    return json_output
+
+
+# -----------------------
+# Exemplo de uso:
+# -----------------------
+
+input_file = "/mnt/data/DadosAvDisciplinasEAD_1S2025.xlsx"
+output_file = "/mnt/data/output.json"
+
+json_data = excel_to_json(input_file, output_file)
+
+print("Conversão concluída!")
+print(f"Arquivo gerado em: {output_file}")

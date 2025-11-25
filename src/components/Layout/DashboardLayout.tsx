@@ -25,6 +25,7 @@ import {
   Settings,
   CloudUpload,
 } from "@mui/icons-material";
+import * as XLSX from "xlsx";
 
 const drawerWidth = 260;
 
@@ -43,26 +44,78 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
     const handleFiles = async (files: FileList | null) => {
       if (!files || files.length === 0) return;
+      setImporting(true);
+
       const form = new FormData();
+      const parsedResults: Array<any> = [];
+      const uploadFiles: File[] = [];
+
+      const isExcel = (name: string) => /\.(xlsx|xls|xlsm|csv)$/i.test(name);
+
+      const readExcel = (file: File) =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = e.target?.result;
+              if (!data) return resolve(null);
+              const wb = XLSX.read(data as ArrayBuffer, { type: "array" });
+              const sheets: Record<string, any[]> = {};
+              wb.SheetNames.forEach((sheetName) => {
+                const ws = wb.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+                sheets[sheetName] = json;
+              });
+              resolve({ fileName: file.name, sheets });
+            } catch (err) {
+              reject(err);
+            }
+          };
+          reader.onerror = (err) => reject(err);
+          reader.readAsArrayBuffer(file);
+        });
+
       for (let i = 0; i < files.length; i++) {
-        form.append("files", files[i]);
+        const f = files[i];
+        if (isExcel(f.name)) {
+          try {
+            const parsed = await readExcel(f);
+            if (parsed) parsedResults.push(parsed);
+          } catch (err) {
+            console.error("Error parsing", f.name, err);
+            alert(`Erro ao parsear ${f.name}. Veja console para detalhes.`);
+          }
+        } else {
+          uploadFiles.push(f);
+          form.append("files", f);
+        }
       }
 
       try {
-        setImporting(true);
-        const resp = await fetch("http://localhost:5000/upload", {
-          method: "POST",
-          body: form,
-        });
+        // If there are non-excel files, send them to the backend as before
+        if (uploadFiles.length > 0) {
+          const resp = await fetch("http://localhost:5000/upload", {
+            method: "POST",
+            body: form,
+          });
 
-        if (!resp.ok) {
-          const text = await resp.text();
-          throw new Error(text || "Upload failed");
+          if (!resp.ok) {
+            const text = await resp.text();
+            throw new Error(text || "Upload failed");
+          }
+
+          const results = await resp.json();
+          console.log("Server parsed results:", results);
         }
 
-        const results = await resp.json();
-        console.log("Parsed results:", results);
-        alert(`Importado ${results.length} documento(s). Veja console para detalhes.`);
+        if (parsedResults.length > 0) {
+          console.log("Client parsed results:", parsedResults);
+          // You can now send `parsedResults` to your backend as JSON
+          // or store it in state and use it directly in the app.
+          alert(`Importado ${parsedResults.length} documento(s) (Excel). Veja console para detalhes.`);
+        } else if (uploadFiles.length > 0) {
+          alert("Arquivos enviados ao servidor. Veja console para detalhes.");
+        }
       } catch (err) {
         console.error(err);
         alert("Erro ao importar arquivos. Verifique o console.");

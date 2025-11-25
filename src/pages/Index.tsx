@@ -1,13 +1,36 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Box, Container } from "@mui/material";
+import { DashboardLayout } from "@/components/Layout/DashboardLayout";
+import { MetricsCards } from "@/components/Dashboard/MetricsCards";
+import { FiltersPanel, DashboardFilters } from "@/components/Dashboard/FiltersPanel";
+import { ChartsSection } from "@/components/Dashboard/ChartsSection";
+import { DataTable } from "@/components/Dashboard/DataTable";
 
 const Index = () => {
+  const [filters, setFilters] = useState<DashboardFilters>({
+    curso: "Todos",
+    setorCurso: "Todos",
+    situacao: "Todos",
+    questionario: "Todos",
+  });
+
+  const handleFiltersChange = (newFilters: DashboardFilters) => {
+    setFilters(newFilters);
+    console.log("Filtros aplicados:", newFilters);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <DashboardLayout>
+      <Container maxWidth={false} className="space-y-6">
+        <MetricsCards />
+        
+        <FiltersPanel filters={filters} onFiltersChange={handleFiltersChange} />
+        
+        <ChartsSection />
+        
+        <DataTable />
+      </Container>
+    </DashboardLayout>
   );
 };
 

@@ -8,14 +8,14 @@ import {
   Button,
 } from "@mui/material";
 
-import hierarquia from "@/utils/hierarquia.json";
+import dadosReais from "@/utils/dados_disciplinaPresencial.json";
+import { DadoPesquisa } from "@/types/DadoPesquisa";
 
 // ================= INTERFACE =================
 export interface DashboardFilters {
   setorCurso: string;
   curso: string;
   disciplina: string;
-  situacao: string;
   questionario: string;
 }
 
@@ -26,10 +26,11 @@ interface Props {
 
 // ================= COMPONENTE =================
 export default function FiltersPanel({ filters, onFiltersChange }: Props) {
+  const dados = dadosReais as DadoPesquisa[];
+
   const handleChange = (field: keyof DashboardFilters, value: string) => {
     const updated = { ...filters, [field]: value };
 
-    // Hierarquia reset
     if (field === "setorCurso") {
       updated.curso = "Todos";
       updated.disciplina = "Todos";
@@ -42,18 +43,45 @@ export default function FiltersPanel({ filters, onFiltersChange }: Props) {
     onFiltersChange(updated);
   };
 
-  // ================= DADOS DINÂMICOS =================
-  const setores = ["Todos", ...Object.keys(hierarquia)];
+  // ✅ SETORES ÚNICOS
+  const setores = [
+    "Todos",
+    ...Array.from(new Set(dados.map((d) => d.setorCurso))),
+  ];
 
+  // ✅ CURSOS BASEADOS NO SETOR
   const cursos =
-    filters.setorCurso !== "Todos"
-      ? ["Todos", ...Object.keys(hierarquia[filters.setorCurso] || {})]
-      : ["Todos"];
+    filters.setorCurso === "Todos"
+      ? ["Todos"]
+      : [
+          "Todos",
+          ...Array.from(
+            new Set(
+              dados
+                .filter((d) => d.setorCurso === filters.setorCurso)
+                .map((d) => d.curso)
+            )
+          ),
+        ];
 
+  // ✅ DISCIPLINAS BASEADAS EM SETOR + CURSO
   const disciplinas =
-    filters.setorCurso !== "Todos" && filters.curso !== "Todos"
-      ? ["Todos", ...(hierarquia[filters.setorCurso]?.[filters.curso] || [])]
-      : ["Todos"];
+    filters.curso === "Todos"
+      ? ["Todos"]
+      : [
+          "Todos",
+          ...Array.from(
+            new Set(
+              dados
+                .filter(
+                  (d) =>
+                    d.setorCurso === filters.setorCurso &&
+                    d.curso === filters.curso
+                )
+                .map((d) => d.disciplina)
+            )
+          ),
+        ];
 
   return (
     <Box display="flex" gap={2} flexWrap="wrap">
@@ -116,7 +144,6 @@ export default function FiltersPanel({ filters, onFiltersChange }: Props) {
             setorCurso: "Todos",
             curso: "Todos",
             disciplina: "Todos",
-            situacao: "Todos",
             questionario: "Todos",
           })
         }

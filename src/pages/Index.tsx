@@ -5,14 +5,13 @@ import { MetricsCards } from "@/components/Dashboard/MetricsCards";
 import FiltersPanel, {
   DashboardFilters,
 } from "@/components/Dashboard/FiltersPanel";
-import { ChartsSection } from "@/components/Dashboard/ChartsSection";
+import ChartsSection from "@/components/Dashboard/ChartsSection";
 
 const Index = () => {
   const [filters, setFilters] = useState<DashboardFilters>({
-    curso: "Todos",
     setorCurso: "Todos",
+    curso: "Todos",
     disciplina: "Todos",
-    situacao: "Todos",
     questionario: "Todos",
   });
 
@@ -26,7 +25,7 @@ const Index = () => {
       <Container maxWidth={false} className="space-y-6">
         <FiltersPanel filters={filters} onFiltersChange={handleFiltersChange} />
 
-        <ChartsSection />
+        <ChartsSection filters={filters} />
         <MetricsCards />
       </Container>
     </DashboardLayout>

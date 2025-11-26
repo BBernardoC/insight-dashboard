@@ -42,88 +42,90 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-    const handleFiles = async (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-      setImporting(true);
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setImporting(true);
 
-      const form = new FormData();
-      const parsedResults: Array<any> = [];
-      const uploadFiles: File[] = [];
+    const form = new FormData();
+    const parsedResults: Array<any> = [];
+    const uploadFiles: File[] = [];
 
-      const isExcel = (name: string) => /\.(xlsx|xls|xlsm|csv)$/i.test(name);
+    const isExcel = (name: string) => /\.(xlsx|xls|xlsm|csv)$/i.test(name);
 
-      const readExcel = (file: File) =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const data = e.target?.result;
-              if (!data) return resolve(null);
-              const wb = XLSX.read(data as ArrayBuffer, { type: "array" });
-              const sheets: Record<string, any[]> = {};
-              wb.SheetNames.forEach((sheetName) => {
-                const ws = wb.Sheets[sheetName];
-                const json = XLSX.utils.sheet_to_json(ws, { defval: null });
-                sheets[sheetName] = json;
-              });
-              resolve({ fileName: file.name, sheets });
-            } catch (err) {
-              reject(err);
-            }
-          };
-          reader.onerror = (err) => reject(err);
-          reader.readAsArrayBuffer(file);
+    const readExcel = (file: File) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = e.target?.result;
+            if (!data) return resolve(null);
+            const wb = XLSX.read(data as ArrayBuffer, { type: "array" });
+            const sheets: Record<string, any[]> = {};
+            wb.SheetNames.forEach((sheetName) => {
+              const ws = wb.Sheets[sheetName];
+              const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+              sheets[sheetName] = json;
+            });
+            resolve({ fileName: file.name, sheets });
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsArrayBuffer(file);
+      });
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (isExcel(f.name)) {
+        try {
+          const parsed = await readExcel(f);
+          if (parsed) parsedResults.push(parsed);
+        } catch (err) {
+          console.error("Error parsing", f.name, err);
+          alert(`Erro ao parsear ${f.name}. Veja console para detalhes.`);
+        }
+      } else {
+        uploadFiles.push(f);
+        form.append("files", f);
+      }
+    }
+
+    try {
+      // If there are non-excel files, send them to the backend as before
+      if (uploadFiles.length > 0) {
+        const resp = await fetch("http://localhost:5000/upload", {
+          method: "POST",
+          body: form,
         });
 
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        if (isExcel(f.name)) {
-          try {
-            const parsed = await readExcel(f);
-            if (parsed) parsedResults.push(parsed);
-          } catch (err) {
-            console.error("Error parsing", f.name, err);
-            alert(`Erro ao parsear ${f.name}. Veja console para detalhes.`);
-          }
-        } else {
-          uploadFiles.push(f);
-          form.append("files", f);
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || "Upload failed");
         }
+
+        const results = await resp.json();
+        console.log("Server parsed results:", results);
       }
 
-      try {
-        // If there are non-excel files, send them to the backend as before
-        if (uploadFiles.length > 0) {
-          const resp = await fetch("http://localhost:5000/upload", {
-            method: "POST",
-            body: form,
-          });
-
-          if (!resp.ok) {
-            const text = await resp.text();
-            throw new Error(text || "Upload failed");
-          }
-
-          const results = await resp.json();
-          console.log("Server parsed results:", results);
-        }
-
-        if (parsedResults.length > 0) {
-          console.log("Client parsed results:", parsedResults);
-          // You can now send `parsedResults` to your backend as JSON
-          // or store it in state and use it directly in the app.
-          alert(`Importado ${parsedResults.length} documento(s) (Excel). Veja console para detalhes.`);
-        } else if (uploadFiles.length > 0) {
-          alert("Arquivos enviados ao servidor. Veja console para detalhes.");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Erro ao importar arquivos. Verifique o console.");
-      } finally {
-        setImporting(false);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+      if (parsedResults.length > 0) {
+        console.log("Client parsed results:", parsedResults);
+        // You can now send `parsedResults` to your backend as JSON
+        // or store it in state and use it directly in the app.
+        alert(
+          `Importado ${parsedResults.length} documento(s) (Excel). Veja console para detalhes.`
+        );
+      } else if (uploadFiles.length > 0) {
+        alert("Arquivos enviados ao servidor. Veja console para detalhes.");
       }
-    };
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao importar arquivos. Verifique o console.");
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -155,7 +157,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   : "hover:bg-secondary text-foreground"
               }`}
             >
-              <ListItemIcon className={item.active ? "text-primary-foreground" : "text-foreground"}>
+              <ListItemIcon
+                className={
+                  item.active ? "text-primary-foreground" : "text-foreground"
+                }
+              >
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />

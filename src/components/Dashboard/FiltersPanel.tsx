@@ -105,7 +105,7 @@ export default function FiltersPanel({ filters, onFiltersChange }: Props) {
       {/* SETOR */}
       <FormControl fullWidth size="small">
         <InputLabel>Setor</InputLabel>
-        <Select
+        <Select<String[]>
           multiple
           value={filters.setorCurso}
           label="Setor"
@@ -132,7 +132,7 @@ export default function FiltersPanel({ filters, onFiltersChange }: Props) {
       {/* CURSO */}
       <FormControl fullWidth size="small" disabled={cursos.length === 0}>
         <InputLabel>Curso</InputLabel>
-        <Select
+        <Select<String[]>
           multiple
           value={filters.curso}
           label="Curso"
@@ -159,7 +159,7 @@ export default function FiltersPanel({ filters, onFiltersChange }: Props) {
       {/* DISCIPLINA */}
       <FormControl fullWidth size="small" disabled={disciplinas.length === 0}>
         <InputLabel>Disciplina</InputLabel>
-        <Select
+        <Select<String[]>
           multiple
           value={filters.disciplina}
           label="Disciplina"
@@ -186,7 +186,7 @@ export default function FiltersPanel({ filters, onFiltersChange }: Props) {
       {/* PERGUNTA */}
       <FormControl fullWidth size="small">
         <InputLabel>Perguntas</InputLabel>
-        <Select
+        <Select<String[]>
           multiple
           value={filters.pergunta}
           label="Perguntas"

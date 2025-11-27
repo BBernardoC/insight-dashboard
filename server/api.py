@@ -21,7 +21,7 @@ def get_db():
 def init_db():
     conn = get_db()
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)"
+        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT, role TEXT DEFAULT 'aluno')"
     )
     conn.commit()
     conn.close()
@@ -31,13 +31,19 @@ def register():
     data = request.get_json() or {}
     username = data.get("username", "").strip()
     password = data.get("password", "")
+    role = data.get("role", "aluno").strip().lower()
+    
     if not username or not password:
         return jsonify({"error": "username and password required"}), 400
+    
+    if role not in ["admin", "professor", "aluno"]:
+        return jsonify({"error": "invalid role"}), 400
+    
     conn = get_db()
     try:
         conn.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            (username, generate_password_hash(password)),
+            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            (username, generate_password_hash(password), role),
         )
         conn.commit()
     except sqlite3.IntegrityError:
@@ -57,7 +63,7 @@ def login():
     user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     conn.close()
     if user and check_password_hash(user["password"], password):
-        return jsonify({"ok": True, "username": username}), 200
+        return jsonify({"ok": True, "username": username, "role": user["role"]}), 200
     return jsonify({"error": "invalid credentials"}), 401
 
 @app.route("/upload", methods=["POST"])

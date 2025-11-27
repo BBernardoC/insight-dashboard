@@ -5,6 +5,7 @@ export default function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
+  const [role, setRole] = useState("aluno");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,7 +18,7 @@ export default function Register() {
       const resp = await fetch("http://localhost:5000/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, role }),
       });
       const json = await resp.json();
       if (resp.ok) {
@@ -42,7 +43,20 @@ export default function Register() {
             className="w-full border p-2"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
           />
+        </div>
+        <div>
+          <label>Tipo de Usuário</label>
+          <select
+            className="w-full border p-2"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            <option value="aluno">Aluno</option>
+            <option value="professor">Professor</option>
+            <option value="admin">Admin</option>
+          </select>
         </div>
         <div>
           <label>Senha</label>
@@ -51,6 +65,7 @@ export default function Register() {
             className="w-full border p-2"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
         <div>
@@ -60,6 +75,7 @@ export default function Register() {
             className="w-full border p-2"
             value={confirmPwd}
             onChange={(e) => setConfirmPwd(e.target.value)}
+            required
           />
         </div>
         <div>

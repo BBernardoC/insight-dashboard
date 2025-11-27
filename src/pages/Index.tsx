@@ -9,9 +9,10 @@ import ChartsSection from "@/components/Dashboard/ChartsSection";
 
 const Index = () => {
   const [filters, setFilters] = useState<DashboardFilters>({
-    setorCurso: "Todos",
-    curso: "Todos",
-    disciplina: "Todos",
+    setorCurso: [],
+    curso: [],
+    disciplina: [],
+    pergunta: [],
     questionario: "Todos",
   });
 
@@ -23,10 +24,11 @@ const Index = () => {
   return (
     <DashboardLayout>
       <Container maxWidth={false} className="space-y-6">
+        <MetricsCards />
+
         <FiltersPanel filters={filters} onFiltersChange={handleFiltersChange} />
 
         <ChartsSection filters={filters} />
-        <MetricsCards />
       </Container>
     </DashboardLayout>
   );

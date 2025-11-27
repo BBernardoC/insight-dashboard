@@ -1,20 +1,17 @@
 import { Paper, Typography, Box } from "@mui/material";
-import {
-  Assessment,
-  People,
-  School,
-  TrendingUp,
-} from "@mui/icons-material";
+import { Assessment, School, MenuBook, TrendingUp } from "@mui/icons-material";
+import { transformarDadosPesquisa } from "@/utils/transformarDadosPesquisa";
+import dadosReais from "@/utils/dados_disciplinaPresencial.json";
+import { DadoPesquisa } from "@/types/DadoPesquisa";
 
 interface MetricCardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  trend?: string;
   color: "primary" | "accent" | "warning" | "secondary";
 }
 
-const MetricCard = ({ title, value, icon, trend, color }: MetricCardProps) => {
+const MetricCard = ({ title, value, icon, color }: MetricCardProps) => {
   const colorClasses = {
     primary: "bg-primary-light text-primary",
     accent: "bg-accent-light text-accent",
@@ -23,60 +20,86 @@ const MetricCard = ({ title, value, icon, trend, color }: MetricCardProps) => {
   };
 
   return (
-    <Paper elevation={0} className="p-6 border border-border rounded-xl hover:shadow-lg transition-all">
+    <Paper
+      elevation={0}
+      className="p-6 border border-border rounded-xl hover:shadow-lg transition-all"
+    >
       <Box className="flex items-start justify-between">
-        <Box className="flex-1">
-          <Typography variant="body2" className="text-muted-foreground mb-2 font-medium">
+        <Box>
+          <Typography
+            variant="body2"
+            className="text-muted-foreground mb-2 font-medium"
+          >
             {title}
           </Typography>
-          <Typography variant="h4" className="font-bold text-foreground mb-2">
+          <Typography variant="h4" className="font-bold text-foreground">
             {value}
           </Typography>
-          {trend && (
-            <Box className="flex items-center gap-1">
-              <TrendingUp className="text-accent w-4 h-4" />
-              <Typography variant="caption" className="text-accent font-medium">
-                {trend}
-              </Typography>
-            </Box>
-          )}
         </Box>
-        <Box className={`p-3 rounded-xl ${colorClasses[color]}`}>
-          {icon}
-        </Box>
+        <Box className={`p-3 rounded-xl ${colorClasses[color]}`}>{icon}</Box>
       </Box>
     </Paper>
   );
 };
 
 export const MetricsCards = () => {
+  const dados = dadosReais as DadoPesquisa[];
+
+  const dadosTransformados = transformarDadosPesquisa(dados);
+
+  // Total de pesquisas (unique por pergunta)
+  // Total de respostas (registros reais)
+  const totalRespostas = dados.length;
+
+  // Cursos únicos
+  const totalCursos = new Set(dados.map((d) => d.curso)).size;
+
+  // Disciplinas únicas
+  const totalDisciplinas = new Set(dados.map((d) => d.disciplina)).size;
+
+  const totalPessoas = new Set(dados.map((d) => d.id_pesquisa)).size;
+
+  // Cálculo de aprovação (% Positivo)
+  let somaPositivo = 0;
+  let somaTotal = 0;
+
+  dadosTransformados.forEach((item: any) => {
+    const positivo = (item.Concordo_qtd || 0) + (item.Sim_qtd || 0);
+    const negativo = (item.Discordo_qtd || 0) + (item.Não_qtd || 0);
+    const neutro = item.Desconheço_qtd || 0;
+
+    somaPositivo += positivo;
+    somaTotal += positivo + negativo + neutro;
+    console.log({ somaPositivo, somaTotal, positivo, negativo, neutro });
+  });
+  console.log(dadosTransformados);
+  console.log(somaPositivo, somaTotal, totalRespostas);
+  const taxaAprovacao =
+    somaTotal === 0 ? 0 : ((somaPositivo / somaTotal) * 100).toFixed(2);
+
   const metrics = [
     {
-      title: "Total de Pesquisas",
-      value: "1,247",
+      title: "Total de Perguntas Avaliadas",
+      value: totalRespostas,
       icon: <Assessment className="w-6 h-6" />,
-      trend: "+12% vs mês anterior",
       color: "primary" as const,
     },
     {
-      title: "Respostas Coletadas",
-      value: "8,432",
-      icon: <People className="w-6 h-6" />,
-      trend: "+23% vs mês anterior",
+      title: "Taxa de Aprovação",
+      value: `${taxaAprovacao}%`,
+      icon: <TrendingUp className="w-6 h-6" />,
       color: "accent" as const,
     },
     {
-      title: "Cursos Avaliados",
-      value: "42",
+      title: "Pessoas Unicas Avaliadas",
+      value: totalPessoas,
       icon: <School className="w-6 h-6" />,
-      trend: "100% cobertura",
       color: "warning" as const,
     },
     {
-      title: "Taxa de Resposta",
-      value: "87%",
-      icon: <TrendingUp className="w-6 h-6" />,
-      trend: "+5% vs mês anterior",
+      title: "Disciplinas Avaliadas",
+      value: totalDisciplinas,
+      icon: <MenuBook className="w-6 h-6" />,
       color: "secondary" as const,
     },
   ];

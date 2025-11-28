@@ -60,7 +60,7 @@ export default function FiltersPanel({ filters, onFiltersChange }: Props) {
 
   // ✅ DISCIPLINAS BASEADAS EM SETOR + CURSO
   const disciplinas =
-    filters.curso.length === 0
+    filters.curso.length === 0 || filters.curso.length > 1
       ? []
       : Array.from(
           new Set(

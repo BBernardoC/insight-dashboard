@@ -171,7 +171,7 @@ function ComparisonCard({
             fontWeight={600}
           >
             {difference > 0 ? "+" : ""}
-            {formatValue(Math.abs(difference))}
+            {formatValue(difference)}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {difference === 0
